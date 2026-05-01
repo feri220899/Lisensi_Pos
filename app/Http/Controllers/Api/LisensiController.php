@@ -9,6 +9,7 @@ use App\Http\Requests\Api\ValidasiRequest;
 use App\Models\AktivasiLog;
 use App\Models\Device;
 use App\Models\Lisensi;
+use Firebase\JWT\JWT;
 use Illuminate\Http\JsonResponse;
 
 class LisensiController extends Controller
@@ -51,7 +52,7 @@ class LisensiController extends Controller
                     'last_seen_at' => now(),
                 ]);
                 $this->log($lisensi->id, $request->device_id, 'aktivasi', 'sukses', $request->ip(), 'Device dipindahkan dari lisensi lain.');
-                return $this->sukses($lisensi, 'Aktivasi berhasil.');
+                return $this->sukses($lisensi, $request->device_id, 'Aktivasi berhasil.');
             }
         }
 
@@ -59,7 +60,7 @@ class LisensiController extends Controller
             if ($deviceSudahAda->aktif) {
                 $deviceSudahAda->update(['last_seen_at' => now()]);
                 $this->log($lisensi->id, $request->device_id, 'aktivasi', 'sukses', $request->ip(), 'Device sudah aktif.');
-                return $this->sukses($lisensi, 'Device sudah aktif.');
+                return $this->sukses($lisensi, $request->device_id, 'Device sudah aktif.');
             }
 
             if (!$lisensi->bisaTambahDevice()) {
@@ -68,7 +69,7 @@ class LisensiController extends Controller
 
             $deviceSudahAda->update(['aktif' => true, 'last_seen_at' => now()]);
             $this->log($lisensi->id, $request->device_id, 'aktivasi', 'sukses', $request->ip(), 'Device diaktifkan ulang.');
-            return $this->sukses($lisensi, 'Device berhasil diaktifkan ulang.');
+            return $this->sukses($lisensi, $request->device_id, 'Device berhasil diaktifkan ulang.');
         }
 
         if (!$lisensi->bisaTambahDevice()) {
@@ -86,7 +87,7 @@ class LisensiController extends Controller
         ]);
 
         $this->log($lisensi->id, $request->device_id, 'aktivasi', 'sukses', $request->ip());
-        return $this->sukses($lisensi, 'Aktivasi berhasil.');
+        return $this->sukses($lisensi, $request->device_id, 'Aktivasi berhasil.');
     }
 
     public function validasi(ValidasiRequest $request): JsonResponse
@@ -122,7 +123,7 @@ class LisensiController extends Controller
         $lisensi->update(['last_validated_at' => now()]);
         $this->log($lisensi->id, $request->device_id, 'validasi', 'sukses', $request->ip());
 
-        return $this->sukses($lisensi, 'Lisensi valid.');
+        return $this->sukses($lisensi, $request->device_id, 'Lisensi valid.');
     }
 
     public function deaktivasi(DeaktivasiRequest $request): JsonResponse
@@ -147,16 +148,35 @@ class LisensiController extends Controller
         return response()->json(['sukses' => true, 'pesan' => 'Device berhasil dideaktivasi.']);
     }
 
-    private function sukses(Lisensi $lisensi, string $pesan): JsonResponse
+    private function sukses(Lisensi $lisensi, string $deviceId, string $pesan): JsonResponse
     {
         return response()->json([
             'valid'            => true,
             'pesan'            => $pesan,
+            'token'            => $this->generateJwt($lisensi, $deviceId),
             'paket'            => $lisensi->paket->nama,
             'tipe'             => $lisensi->tipe,
             'tanggal_berakhir' => $lisensi->tanggal_berakhir?->toDateString(),
             'grace_period'     => $lisensi->paket->grace_period_hari,
         ]);
+    }
+
+    private function generateJwt(Lisensi $lisensi, string $deviceId): string
+    {
+        $privateKey = file_get_contents(storage_path('app/jwt/private.pem'));
+
+        $payload = [
+            'iss'         => config('app.url'),
+            'iat'         => time(),
+            'exp'         => time() + (7 * 24 * 60 * 60),
+            'license_key' => $lisensi->license_key,
+            'device_id'   => $deviceId,
+            'paket'       => $lisensi->paket->nama,
+            'tipe'        => $lisensi->tipe,
+            'expired_at'  => $lisensi->tanggal_berakhir?->timestamp,
+        ];
+
+        return JWT::encode($payload, $privateKey, 'RS256');
     }
 
     private function gagal($request, ?Lisensi $lisensi, string $aksi, string $pesan): JsonResponse
