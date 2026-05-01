@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Foundation\Auth\User as Authenticatable;
+use App\Models\Order;
 
 class Akun extends Authenticatable
 {
@@ -22,5 +23,10 @@ class Akun extends Authenticatable
     public function lisensi()
     {
         return $this->hasMany(Lisensi::class);
+    }
+
+    public function orders()
+    {
+        return $this->hasMany(Order::class);
     }
 }

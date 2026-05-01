@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\DeviceController;
 use App\Http\Controllers\Admin\LisensiController;
 use App\Http\Controllers\Customer\CheckoutController;
+use App\Http\Controllers\Customer\TrialWebController;
 use App\Http\Controllers\Customer\OrderStatusController;
 use App\Http\Controllers\Customer\PaketSayaController;
 use App\Http\Controllers\Customer\RegisterController;
@@ -23,8 +24,12 @@ Route::prefix('beli')->name('customer.')->group(function () {
     Route::post('order/{orderId}/token-baru',  [OrderStatusController::class, 'tokenBaru'])->name('order.token-baru');
 });
 
+Route::get('trial',  [TrialWebController::class, 'show'])->name('customer.trial');
+Route::post('trial', [TrialWebController::class, 'store'])->name('customer.trial.post');
+
 Route::get('paket-saya',  [PaketSayaController::class, 'show'])->name('customer.paket-saya');
 Route::post('paket-saya', [PaketSayaController::class, 'cek'])->name('customer.paket-saya.cek');
+Route::post('paket-saya/order/{order}/ganti-metode', [PaketSayaController::class, 'gantiMetode'])->name('customer.paket-saya.ganti-metode');
 
 Route::prefix('admin')->name('admin.')->group(function () {
     Route::get('login',  [AuthController::class, 'showLogin'])->name('login');

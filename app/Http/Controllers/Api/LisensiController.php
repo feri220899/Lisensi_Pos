@@ -28,6 +28,17 @@ class LisensiController extends Controller
             return $this->gagal($request, $lisensi, 'aktivasi', 'Lisensi tidak aktif atau sudah expired.');
         }
 
+        if ($lisensi->tipe === 'trial') {
+            $pernahTrialDevice = Device::whereHas('lisensi', fn($q) => $q->where('tipe', 'trial'))
+                ->where('device_id', $request->device_id)
+                ->where('lisensi_id', '!=', $lisensi->id)
+                ->exists();
+
+            if ($pernahTrialDevice) {
+                return $this->gagal($request, $lisensi, 'aktivasi', 'Perangkat ini sudah pernah menggunakan trial.');
+            }
+        }
+
         $deviceSudahAda = Device::where('device_id', $request->device_id)
             ->where('lisensi_id', $lisensi->id)
             ->first();
@@ -35,7 +46,13 @@ class LisensiController extends Controller
         if (!$deviceSudahAda) {
             $deviceLisensiLain = Device::where('device_id', $request->device_id)->first();
             if ($deviceLisensiLain) {
-                if ($deviceLisensiLain->aktif) {
+                $lisensiLain = $deviceLisensiLain->lisensi;
+                $upgradeFromTrial = $deviceLisensiLain->aktif
+                    && $lisensiLain
+                    && $lisensiLain->tipe === 'trial'
+                    && $lisensi->tipe !== 'trial';
+
+                if ($deviceLisensiLain->aktif && !$upgradeFromTrial) {
                     return $this->gagal($request, $lisensi, 'aktivasi', 'Device sudah aktif di lisensi lain.');
                 }
 

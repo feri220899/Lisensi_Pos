@@ -19,6 +19,10 @@ class CheckoutController extends Controller
     {
         $akun  = Akun::findOrFail($request->query('akun_id'));
         $paket = Paket::where('aktif', true)->findOrFail($request->query('paket_id'));
+
+        if ($paket->slug === 'trial') {
+            return redirect()->route('customer.trial', ['akun_id' => $akun->id]);
+        }
         $tipe  = $request->query('tipe', 'subscription_bulanan');
         $harga = $this->harga($paket, $tipe);
 

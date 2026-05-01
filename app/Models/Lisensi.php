@@ -43,6 +43,7 @@ class Lisensi extends Model
     {
         if ($this->status !== 'aktif') return false;
         if ($this->tipe === 'lifetime') return true;
+        if ($this->tipe === 'trial') return now()->lte($this->tanggal_berakhir);
 
         $grace = $this->paket->grace_period_hari ?? 1;
         return now()->lte($this->tanggal_berakhir->addDays($grace));

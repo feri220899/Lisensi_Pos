@@ -177,6 +177,42 @@
         <a href="{{ route('customer.paket-saya') }}" class="ml-auto text-xs text-gray-400 hover:underline">Ganti akun</a>
     </div>
 
+    @if($pendingOrders->isNotEmpty())
+    <div class="mb-4">
+        <p class="text-xs font-semibold text-amber-600 uppercase tracking-wide mb-2">Pembayaran Menunggu</p>
+        @foreach($pendingOrders as $order)
+        <div class="bg-amber-50 border border-amber-200 rounded-2xl p-5 mb-3">
+            <div class="flex items-center justify-between gap-4">
+                <div>
+                    <p class="font-semibold text-gray-900 text-sm">{{ $order->paket->nama }}</p>
+                    <p class="text-xs text-gray-500 mt-0.5">
+                        {{ match($order->tipe_lisensi) {
+                            'lifetime' => 'Lifetime',
+                            'subscription_bulanan' => 'Bulanan',
+                            'subscription_tahunan' => 'Tahunan',
+                            default => $order->tipe_lisensi,
+                        } }} ·
+                        Rp {{ number_format($order->jumlah, 0, ',', '.') }}
+                    </p>
+                    <p class="text-xs text-gray-400 mt-0.5">{{ $order->created_at->diffForHumans() }}</p>
+                </div>
+                <a href="{{ $order->midtrans_url }}" target="_blank"
+                   class="shrink-0 bg-amber-500 hover:bg-amber-600 text-white text-sm font-semibold px-4 py-2 rounded-xl transition">
+                    Lanjut Bayar
+                </a>
+            </div>
+            <form method="POST" action="{{ route('customer.paket-saya.ganti-metode', $order) }}" class="mt-3">
+                @csrf
+                <button type="submit"
+                        class="w-full border border-amber-400 text-amber-700 hover:bg-amber-100 text-sm font-medium py-2 rounded-xl transition">
+                    Ganti Metode Pembayaran
+                </button>
+            </form>
+        </div>
+        @endforeach
+    </div>
+    @endif
+
     @forelse($lisensi as $l)
     <div x-data="{ buka: {{ $loop->first ? 'true' : 'false' }} }"
          class="bg-white rounded-2xl shadow-sm mb-4 overflow-hidden">
