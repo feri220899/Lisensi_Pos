@@ -19,6 +19,10 @@ class RegisterController extends Controller
 
     public function showRegister(Request $request)
     {
+        $request->validate([
+            'paket_id' => 'required|exists:paket,id',
+            'tipe'     => 'required|in:lifetime,subscription_bulanan,subscription_tahunan',
+        ]);
         $paket  = Paket::where('aktif', true)->findOrFail($request->query('paket_id'));
         $tipe   = $request->query('tipe', 'subscription_bulanan');
         return view('customer.register', compact('paket', 'tipe'));
